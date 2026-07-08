@@ -1,8 +1,8 @@
 #ifndef MATERIALS_INCLUDE
 #define MATERIALS_INCLUDE
 
-// Fixed for 1.26.32 - proper texture binding and PBR data handling
 // taken from old vanilla deferred material, and it still works
+// Updated for 1.26.32 compatibility
 
 CONST(int) kInvalidPBRTextureHandle = 0xFFFF;
 CONST(int) kPBRTextureDataFlagHasMaterialTexture = 1;
@@ -64,7 +64,6 @@ vec3 calculateTangentNormalFromHeightmap(highp sampler2D heightmapTexture, vec2 
                 heightmapUV.y += (nudgeSampleCoord.y > 0.5) ? kNudgeUvEpsilon : -kNudgeUvEpsilon;
             }
         }
-        heightmapUV = clamp(heightmapUV, vec2(0.0), vec2(1.0));
         vec4 heightSamples = textureGather(heightmapTexture, heightmapUV, 0);
         vec2 subPixelCoord = fract(pixelCoord + 0.5);
 
@@ -122,20 +121,17 @@ void getTexturePBRMaterials(
     inout vec3 normal,
     inout vec4 mers
 ) {
-    if (pbrTextureId == kInvalidPBRTextureHandle) return;
+    if (pbrTextureId == kInvalidPBRTextureHandle || pbrTextureId < 0) return;
 
     PBRTextureData pbrTextureData = s_PBRData[pbrTextureId];
 
     mers = vec4(pbrTextureData.uniformMetalness, pbrTextureData.uniformEmissive, pbrTextureData.uniformRoughness, pbrTextureData.uniformSubsurface);
 
-    uv = clamp(uv, vec2(0.0), vec2(1.0));
-
     if ((pbrTextureData.flags & kPBRTextureDataFlagHasMaterialTexture) == kPBRTextureDataFlagHasMaterialTexture) {
         vec2 materialUVScale = vec2(pbrTextureData.colourToMaterialUvScale0, pbrTextureData.colourToMaterialUvScale1);
         vec2 materialUVBias = vec2(pbrTextureData.colourToMaterialUvBias0, pbrTextureData.colourToMaterialUvBias1);
 
-        vec2 sampleUV = clamp(uv * materialUVScale + materialUVBias, vec2(0.0), vec2(1.0));
-        vec4 mersTex = texture2D(matTexture, sampleUV);
+        vec4 mersTex = texture2D(matTexture, uv * materialUVScale + materialUVBias);
         mers.rgb = mersTex.rgb;
         if ((pbrTextureData.flags & kPBRTextureDataFlagHasSubsurfaceChannel) == kPBRTextureDataFlagHasSubsurfaceChannel) mers.a = mersTex.a;
     }
@@ -149,12 +145,10 @@ void getTexturePBRMaterials(
         vec2 normalUVBias = vec2(pbrTextureData.colourToNormalUvBias0, pbrTextureData.colourToNormalUvBias1);
 
         if (hasNormal) {
-            vec2 sampleUV = clamp(uv * normalUVScale + normalUVBias, vec2(0.0), vec2(1.0));
-            tNormal = texture2D(matTexture, sampleUV).rgb * 2.0 - 1.0;
+            tNormal = texture2D(matTexture, uv * normalUVScale + normalUVBias).rgb * 2.0 - 1.0;
         } else if (hasHeightmap) {
             float normalMipLevel = min(pbrTextureData.maxMipNormal - pbrTextureData.maxMipColour, pbrTextureData.maxMipNormal);
-            vec2 sampleUV = clamp(uv * normalUVScale + normalUVBias, vec2(0.0), vec2(1.0));
-            tNormal = calculateTangentNormalFromHeightmap(matTexture, sampleUV, normalMipLevel);
+            tNormal = calculateTangentNormalFromHeightmap(matTexture, uv * normalUVScale + normalUVBias, normalMipLevel);
         }
     }
 
@@ -195,7 +189,6 @@ void getTexturePBRMaterials(
 ) {
     mers = vec4(MetalnessUniform.r, EmissiveUniform.r, RoughnessUniform.r, SubsurfaceUniform.r);
 
-    uv = clamp(uv, vec2(0.0), vec2(1.0));
     int pbrTextureFlags = int(PBRTextureFlags.r);
 
     if ((pbrTextureFlags & kPBRTextureDataFlagHasMaterialTexture) == kPBRTextureDataFlagHasMaterialTexture) {
@@ -234,14 +227,11 @@ void getTexturePBRMaterials(
 
     mers = vec4(BannerBasePBRTextureData[2].abg, BannerBasePBRTextureData[3].r);
 
-    uv = clamp(uv, vec2(0.0), vec2(1.0));
-
     if ((pbrTextureId & kPBRTextureDataFlagHasMaterialTexture) == kPBRTextureDataFlagHasMaterialTexture) {
         vec2 materialUVScale = vec2(BannerBasePBRTextureData[0].x, BannerBasePBRTextureData[0].y);
         vec2 materialUVBias = vec2(BannerBasePBRTextureData[0].z, BannerBasePBRTextureData[0].w);
 
-        vec2 sampleUV = clamp(uv * materialUVScale + materialUVBias, vec2(0.0), vec2(1.0));
-        vec4 mersTex = texture2D(matTexture, sampleUV);
+        vec4 mersTex = texture2D(matTexture, uv * materialUVScale + materialUVBias);
         mers.rgb = mersTex.rgb;
         if ((pbrTextureId & kPBRTextureDataFlagHasSubsurfaceChannel) == kPBRTextureDataFlagHasSubsurfaceChannel) mers.a = mersTex.a;
     }
@@ -255,12 +245,10 @@ void getTexturePBRMaterials(
         vec2 normalUVBias = vec2(BannerBasePBRTextureData[1].z, BannerBasePBRTextureData[1].w);
 
         if (hasNormal) {
-            vec2 sampleUV = clamp(uv * normalUVScale + normalUVBias, vec2(0.0), vec2(1.0));
-            tNormal = texture2D(matTexture, sampleUV).rgb * 2.0 - 1.0;
+            tNormal = texture2D(matTexture, uv * normalUVScale + normalUVBias).rgb * 2.0 - 1.0;
         } else if (hasHeightmap) {
             float normalMipLevel = min(BannerBasePBRTextureData[3].w - BannerBasePBRTextureData[3].y, BannerBasePBRTextureData[3].w);
-            vec2 sampleUV = clamp(uv * normalUVScale + normalUVBias, vec2(0.0), vec2(1.0));
-            tNormal = calculateTangentNormalFromHeightmap(matTexture, sampleUV, normalMipLevel);
+            tNormal = calculateTangentNormalFromHeightmap(matTexture, uv * normalUVScale + normalUVBias, normalMipLevel);
         }
     }
 

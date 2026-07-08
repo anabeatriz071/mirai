@@ -77,7 +77,7 @@ if exist "%SHADERC_PATH%" (
         popd
         exit /b 1
     )
-    powershell -Command "Expand-Archive -Force '%ZIP_FILE%' '.'"
+    powershell -Command "Expand-Archive -Force '%ZIP_FILE%' '.'" >nul
 )
 
 REM Make sure shaderc downloaded, extracted and renamed successfully
