@@ -1,0 +1,32 @@
+name: Build Shader Pack
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Lazurite
+        run: pip install lazurite
+
+      - name: Run build script
+        run: .\build.bat windows
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-shaders
+          path: .
+          if-no-files-found: warn
