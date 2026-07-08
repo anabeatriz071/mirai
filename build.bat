@@ -1,24 +1,24 @@
 @echo off
 setlocal enabledelayedexpansion
 :: Name: build.bat
-:: Version: v1.2.4
+:: Version: v26.32
 :: Author: bambosan
-:: Date: 2026, 03, 11
+:: Date: 2026, 07, 08
 :: Used for build final changes, not for development
 
 REM Set root directory to current directory to avoid any file issues
 pushd "%~dp0"
 
 REM Colours and escape sequences (from matject, thanks to fzul)
-set "GRY=[90m"
-set "RED=[91m"
-set "GRN=[92m"
-set "YLW=[93m"
-set "BLU=[94m"
-set "CYN=[96m"
-set "WHT=[97m"
-set "RST=[0m" && REM Clears colours and formatting
-set "ERR=[41;97m" && REM Red background with white text
+set "GRY=[90m"
+set "RED=[91m"
+set "GRN=[92m"
+set "YLW=[93m"
+set "BLU=[94m"
+set "CYN=[96m"
+set "WHT=[97m"
+set "RST=[0m" && REM Clears colours and formatting
+set "ERR=[41;97m" && REM Red background with white text
 
 REM Shaderc paths
 set "SHADERC_PATH=shaderc.exe"
@@ -32,7 +32,7 @@ set "VC_SUBPACK_MATERIALS_PATH=%SUBPACKS_PATH%\vc\renderer\materials"
 set "NOVC_SUBPACK_MATERIALS_PATH=%SUBPACKS_PATH%\novc\renderer\materials"
 
 REM checking platforms param
-if "%~1"=="" (
+if "%~1"==" " (
     echo Usage: build.bat ^<platform^>
     echo Allowed: windows ^| android ^| ios
     popd
@@ -77,7 +77,7 @@ if exist "%SHADERC_PATH%" (
         popd
         exit /b 1
     )
-    powershell -Command "Expand-Archive -Force '%ZIP_FILE%' '.'" >nul
+    powershell -Command "Expand-Archive -Force '%ZIP_FILE%' '.'"
 )
 
 REM Make sure shaderc downloaded, extracted and renamed successfully

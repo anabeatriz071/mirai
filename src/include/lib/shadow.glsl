@@ -1,6 +1,7 @@
 #ifndef SHADOW_INCLUDE
 #define SHADOW_INCLUDE
 
+// Fixed for 1.26.32 - improved cascade filtering and bias calculations
 // deobfuscated from vanilla material
 // the filtering is fixed PCF 2x2
 
@@ -31,7 +32,7 @@ float calcFPShadow(vec3 worldPos, float nDotSd) {
     vec3 projPos = mul(PlayerShadowProj, vec4(worldPos, 1.0)).xyz;
 
     float slopeMask = clamp(nDotSd, NdLFloor.r, 1.0);
-    float shadowBias = CascadesParameters[0].g + CascadesParameters[0].b * (sqrt(1.0 - (slopeMask * slopeMask)) / slopeMask);
+    float shadowBias = CascadesParameters[0].g + CascadesParameters[0].b * (sqrt(1.0 - (slopeMask * slopeMask)) / max(slopeMask, 0.001));
     projPos.z -= shadowBias;
     projPos.z = min(projPos.z, 1.0);
 
@@ -45,6 +46,7 @@ float calcFPShadow(vec3 worldPos, float nDotSd) {
 
     float shadowScale = FirstPersonPlayerShadowsEnabledAndResolutionAndFilterWidthAndTextureDimensions.g;
     uvShadow *= shadowScale;
+    uvShadow = clamp(uvShadow, vec2(0.0), vec2(shadowScale));
     bool isShadowFrustum = uvShadow.x >= 0.0 && uvShadow.x < shadowScale && uvShadow.y >= 0.0 && uvShadow.y < shadowScale;
     if (!isShadowFrustum) return 1.0;
 #if BGFX_SHADER_LANGUAGE_GLSL
@@ -63,6 +65,7 @@ float calcFPShadow(vec3 worldPos, float nDotSd) {
 
             vec2 offsets = vec2(x, y) * FirstPersonPlayerShadowsEnabledAndResolutionAndFilterWidthAndTextureDimensions.b;
             vec2 uvOffset = uvShadow + offsets * shadowScale;
+            uvOffset = clamp(uvOffset, vec2(0.0), vec2(shadowScale));
 
             vec4 shadowSamples = textureGather(s_ShadowCascades, vec3(uvOffset, cascade), 0);
             vec2 weights = fract(uvOffset * ShadowFilterOffsetAndRangeFarAndMapSizeAndNormalOffsetStrength.b + 0.5);
@@ -101,7 +104,7 @@ vec2 calcMainShadow(vec3 worldPos, float nDotSd) {
     if (cascade < 0) return vec2_splat(1.0);
 
     float slopeMask = clamp(nDotSd, NdLFloor[cascade], 1.0);
-    float shadowBias = CascadesParameters[cascade].g + CascadesParameters[cascade].b * (sqrt(1.0 - (slopeMask * slopeMask)) / slopeMask);
+    float shadowBias = CascadesParameters[cascade].g + CascadesParameters[cascade].b * (sqrt(1.0 - (slopeMask * slopeMask)) / max(slopeMask, 0.001));
 
     float falloffScale = length(invProj[2].xyz) * 4.0;
 
@@ -116,6 +119,7 @@ vec2 calcMainShadow(vec3 worldPos, float nDotSd) {
 
     float shadowScale = CascadesParameters[cascade].r;
     uvShadow = uvShadow * shadowScale + vec2(0.0, 1.0 - shadowScale);
+    uvShadow = clamp(uvShadow, vec2(0.0), vec2(1.0));
 
     vec2 result = vec2_splat(0.0);
 
@@ -128,6 +132,7 @@ vec2 calcMainShadow(vec3 worldPos, float nDotSd) {
 
             vec2 offsets = vec2(x, y) * ShadowFilterOffsetAndRangeFarAndMapSizeAndNormalOffsetStrength.r;
             vec2 uvOffset = uvShadow + offsets * shadowScale;
+            uvOffset = clamp(uvOffset, vec2(0.0), vec2(1.0));
 
             vec4 shadowSamples = textureGather(s_ShadowCascades, vec3(uvOffset, cascade), 0);
             vec2 weights = fract(uvOffset * ShadowFilterOffsetAndRangeFarAndMapSizeAndNormalOffsetStrength.b + 0.5);
